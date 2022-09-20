@@ -329,8 +329,8 @@ class AIScene {
     console.log('response:', response)
     return response?.trim();
   }
-  async generateQuest({location}) {
-    const prompt = makeQuestPrompt({location})
+  async generateQuest({conversation, location, user1, user2}) {
+    const prompt = makeQuestPrompt({conversation, location, user1, user2})
     const stop = makeQuestStop();
     const response = await this.generateFn(prompt, stop);
     const response2 = parseQuestResponse(response);

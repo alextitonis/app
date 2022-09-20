@@ -886,27 +886,82 @@ export async function generateRPGDialogue(
 
 // QUESTS
 
-export const makeQuestPrompt = ({ location }) => {
+export const makeQuestPrompt = ({ conversation, location, user1, user2 }) => {
   return `\
-Utopia: Stay for a day inside, while bothering others|Reward: 100xp
-Dreamland: Try to escape dreamland, without destroying others' dreams|Reward: 200xp
-Hellwhole: Save your loved ones, surviving the wrath of the demons|Reward: 5000xp
-Dark Forest: Survive the night in the dark forest|Reward: 1000xp
-Devastated Building: Get outside, without getting hurt|Reward: 500xp
-Tomb: Escape from the Dead|Reward: 10000xp
-Space Station: Survive an attack by aliens, while trying to repair the station|Reward: 2000xp
-Escape The Maze: Escape the maze, while avoiding the traps|Reward: 1500xp
-The Island: Get off the island, without getting lost|Reward: 4000xp
-The City: Survive a day in the city, without getting lost|Reward: 3000xp
-The Mountain: Get to the top of the mountain, without getting lost|Reward: 6000xp
-The Desert: Survive a day in the desert, without getting lost|Reward: 4000xp
-The Jungle: Get through the jungle, without getting lost|Reward: 5000xp
-The Ocean: Survive a day in the ocean, without getting lost|Reward: 3000xp
-The North Pole: Survive a day at the North Pole, without getting lost|Reward: 7000xp
-The South Pole: Survive a day at the South Pole, without getting lost|Reward: 8000xp
-The Moon: Survive a day on the moon, without getting lost|Reward: 9000xp
-The Sun: Survive a day on the sun, without getting burned|Reward: 10000xp
-${location}:`;
+# Conversation
+{user2}: Excuse me, {user1}. I'm in need of your assistance.
+{user1}: Yes?
+{user2}: Justice demands retribution! In this case it requires death!
+{user1}: What do you need?
+Quest: Slay the mummy army inside the Ancient Tombs|Reward 2000xp
+
+# Conversation
+{user2}: Please, lend me your hand.
+{user1}: What for?
+{user2}: The other day I caught a huge fish. It was enormous! And by enormous I mean it was the biggest fish I've ever seen, it was probably the biggest fish anybody has ever and will ever see. Unfortunately, after I managed to catch it, the fish got away. It took my fishing rod with it and I really need it back. I'd go and get it myself, but it's underwater and I'm pretty sure that fish has a vendetta against me now. Would you mind getting it for me?
+{user1}: Sure
+Quest: Go to the ocean to catch the fish, surviving the horrors there|Reward: 50000xp
+
+# Conversation
+{user2}: I need your help.
+{user1}: What is wrong?
+{user2}: Time is of essence! Can you trust me?
+{user1}: Follow me
+{user1}: What's up {user2}?
+{user2}: I'm looking for people for an expedition
+{user1}: Where to?
+{user2}: To the North Pole
+Quest: Survive a day at the North Pole, without getting lost|Reward: 7000xp
+
+# Conversation
+{user1}: What are you working on in your cauldron today {user2}?
+{user2}: I'm trying out a new potion recipe.
+{user2}: Do you want to help me test it?
+{user1}: Sure, I love helping with potions!
+{user1}: What do I need to do?
+{user1}: Poke that frog for me.
+{user2}: Are you sure? It looks kind of poisonous.
+{user1}: I'm positive, I can handle it.
+{user2}: Okay, but don't say I didn't warn you.
+{user2}: Poke the frog with this stick.
+{user1}: Poke the frog with the stick.
+{user1}: I did it!
+{user1}: What happened?
+{user2}: Well, the frog turned into a prince.
+{user1}: That's amazing!
+{user2}: I know, right? potion-making is so much fun.
+Quest: Create a unique potion to impress {user2}|Reward: 5000xp
+
+# Conversation
+{user1}: Hey {user2}, how are you?
+{user2}: I'm good, could you help me with something?
+{user1}: Yes
+{user2}: I need help to find the ingredients for my potion
+Quest:  Gather Durian fruits from the Dark Forest|Reward: 100xp
+
+# Conversation
+{user1}: What are you working on now {user1}? A potion to turn your teacher into a toad?
+{user2}: Yes, and it's almost ready. Would you like to see?
+{user1}: That's a really impressive potion.
+{user2}: Thank you, I'm really proud of it.
+{user1}: Can I help you testing it?
+{user2}: Sure, I could use an extra set of hands.
+Quest: Find a cursed toad body from inside Hellhole|Reward: 2000xp
+
+# Conversation
+{user1}: Quit being such a nerd and let's make some mischief!
+{user2}: I don't want to get in trouble.
+{user1}: It'll be fun, I promise.
+{user2}: Okay, but if we get caught it's your fault.
+{user2}: Let's go!
+Quest: Curse another NPC|Reward: 400xp
+
+# Conversation:
+${conversation
+  .replaceAll("{location}", location)
+  .replaceAll("{user1}", user1)
+  .replaceAll("{user2}", user2)}
+Quest:`;
 };
 
 export const makeQuestStop = () => ["\n"];
@@ -919,9 +974,15 @@ export const parseQuestResponse = (resp) => {
   };
 };
 
-export async function generateQuest({ location }, generateFn) {
+export async function generateQuest(
+  { conversation, location, user1, user2 },
+  generateFn
+) {
   const input = {
-    location: typeof location === "object" ? location.name : location,
+    conversation,
+    location,
+    user1,
+    user2,
   };
   return parseQuestResponse(
     await generateFn(makeQuestPrompt(input), makeQuestStop(), false)
@@ -2371,12 +2432,6 @@ Quest: no
 {user2}: No, I don't think so. 
 Quest: no
 
-{user1}: Your face is really messed up, what did you do?
-{user2}: I fell down the stairs. 
-{user2}: I broke it.  
-{user2}: I'm really clumsy, so it happens a lot.  
-Quest: no
-
 {user1}: What are you up to?
 {user2}: I'm going for an adventure at the {location}, do you want to come with?
 {user1}: Yes
@@ -2467,6 +2522,31 @@ Quest: yes
 {user2}: Do you want to help me test it?
 {user1}: I'm busy now
 {user2}: Alright
+Quest: no
+
+{user2}: I need your help.
+{user1}: What is wrong?
+{user2}: Time is of essence! Can you trust me?
+{user1}: Follow me
+{user1}: What's up {user2}?
+{user2}: I'm looking for people for an expedition
+{user1}: Where to?
+{user2}: To the {location}
+Quest: yes
+
+{user1}: Do you have a recipe for a love potion? I really need one.
+{user2}: A love potion? No, I don't have a recipe for one of those.
+{user1}: Oh, okay. Thanks anyway.
+{user2}: But I can help you invent one.
+Quest: yes
+
+{user1}: Hey, do you want to buy a love potion? It worked on my teacher and got me an A.
+{user2}: No, love potions are illegal.
+{user1}: Come on, it's just a little potion. What's the harm?
+{user2}: No, I don't want to get in trouble.
+{user2}: I don't want to get in trouble.
+{user1}: Okay, I won't force you.
+{user2}: Thanks.
 Quest: no`;
 
 export const makeQuestCheckerPrompt = (
@@ -2480,8 +2560,7 @@ export const makeQuestCheckerPrompt = (
     .replaceAll("{user1}", user1)
     .replaceAll("{user2}", user2)}
   
-${conversation}
-Quest:`;
+${conversation}Quest:`;
 };
 export const makeQuestCheckerStop = () => {
   return ["\n"];

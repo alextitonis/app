@@ -87,7 +87,6 @@ class Conversation extends EventTarget {
     this.questChecked = false;
     this.questChecking = false;
     this.givesQuest = false;
-    this.generatingQuest = false;
     this.progressing = false;
     this.deltaY = 0;
 
@@ -165,7 +164,7 @@ class Conversation extends EventTarget {
     }
   }
   progressChat() {
-    if (this.questChecking || this.generatingQuest) {
+    if (this.questChecking) {
       return;
     }
     
@@ -188,7 +187,7 @@ class Conversation extends EventTarget {
     });
   }
   progressSelf() {
-    if (this.questChecking || this.generatingQuest) {
+    if (this.questChecking) {
       return;
     }
 
@@ -210,7 +209,7 @@ class Conversation extends EventTarget {
     });
   }
   progressSelfOptions() {
-    if (this.questChecking || this.generatingQuest) {
+    if (this.questChecking) {
       return;
     }
 
@@ -232,7 +231,7 @@ class Conversation extends EventTarget {
     });
   }
   progressOptionSelect(option) {
-    if (this.questChecking || this.generatingQuest) {
+    if (this.questChecking) {
       return;
     }
     
@@ -243,8 +242,10 @@ class Conversation extends EventTarget {
       }
     }
 
-    // say the option
-    this.addLocalPlayerMessage(option.message, 'option');
+    if (!this.givesQuest) {
+      // say the option
+      this.addLocalPlayerMessage(option.message, 'option');
+    }
 
     if (option.emote !== 'none' && validEmotionMapping[option.emote]!== undefined) {
       triggerEmote(validEmotionMapping[option.emote], this.localPlayer);
@@ -256,12 +257,18 @@ class Conversation extends EventTarget {
 
     // 25% chance of self elaboration, 75% chance of other character reply
     this.localTurn = Math.random() < 0.25;
+
+    if (this.givesQuest) {
+      this.finished = true;
+      this.dispatchEvent(new MessageEvent('finish'));
+      this.close();
+    }
   }
   #getMessageAgo(n) {
     return this.messages[this.messages.length - n] ?? null;
   }
   async progress() {
-    if (this.questChecking || this.generatingQuest) {
+    if (this.questChecking) {
       return;
     }
 
@@ -320,16 +327,6 @@ class Conversation extends EventTarget {
           _handleOtherTurn();
         }
       }
-    } else if (this.givesQuest) {
-      this.generatingQuest = true;
-      console.log('is quest:', this.givesQuest)
-      const aiScene = metaversefile.useLoreAIScene();
-      const conv = this.getConversation();
-      const location = this.getLocation();
-      const quest = await aiScene.generateQuest({location});
-      console.log('QUEST:', quest)
-      this.generatingQuest = false;
-      this.close();
     } else {
       if (!this.questChecking) {
       this.close();
@@ -356,22 +353,34 @@ class Conversation extends EventTarget {
   }
 
   async finish() {
-    if (!this.questChecked) {
+    if (!this.questChecked && !this.givesQuest) {
       this.questChecking = true;
       const aiScene = metaversefile.useLoreAIScene();
       const conv = this.getConversation();
       const location = this.getLocation();
       const user1 = this.messages.length >= 1 ? this.messages[0].name : 'Annon';
       const user2 = this.messages.length >= 2 ? this.messages[1].name : 'Ann';
-      this.givesQuest = true// (await aiScene.checkIfQuestIsApplicable(location, conv, user1, user2) === 'yes');
-      console.log('isQuest:', this.givesQuest)
+      const _checker = (await aiScene.checkIfQuestIsApplicable(location, conv, user1, user2))?.toLowerCase()
+      let checker = _checker.trim() == 'yes';
+      if (!checker) { // Give a 5% chance of being a quest
+        checker = Math.random() < 0.05
+      }
+      this.givesQuest = checker;
 
       this.questChecking = false;
       this.questChecked = true;
       if (this.givesQuest) {
-        this.progress();
+        const aiScene = metaversefile.useLoreAIScene();
+        const conv = this.getConversation();
+        const user1 = this.messages.length >= 1 ? this.messages[0].name : 'Annon';
+        const user2 = this.messages.length >= 2 ? this.messages[1].name : 'Ann';
+        const location = this.getLocation();
+        const quest = await aiScene.generateQuest({conversation: conv, location, user1, user2});
+        this.addRemotePlayerMessage('Quest: ' + quest.quest + '\n' + quest.reward, 'headNode');
+        this.#setOptions([{ message: 'Accept', emote: 'headNode' }, { message: 'Decline', emote: 'headNode' }])
+        this.#setHoverIndex(0);
         return
-      }
+      } 
     }
 
     this.finished = true;
